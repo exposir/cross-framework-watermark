@@ -4,7 +4,7 @@
         <canvas ref="watermarkRef" :style="{ position: 'absolute', zIndex: 9999, pointerEvents: 'none' }"></canvas>
     </div>
 </template>
-  
+
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import debounce from 'lodash/debounce';
@@ -37,6 +37,19 @@ const draw = () => {
     ctx.fillText(props.text, width / 2, height / 2);
 };
 
+const drawIfRemoved = (mutationsList) => {
+    for (const mutation of mutationsList) {
+        if (mutation.removedNodes.length > 0) {
+            for (const node of mutation.removedNodes) {
+                if (node === watermarkRef.value) {
+                    draw();
+                    return;
+                }
+            }
+        }
+    }
+};
+
 const debouncedDraw = debounce(draw, 200);
 
 onMounted(() => {
@@ -45,7 +58,10 @@ onMounted(() => {
     const onResize = () => draw();
     window.addEventListener('resize', onResize);
 
-    const observer = new MutationObserver(() => debouncedDraw());
+    const observer = new MutationObserver((mutationsList) => {
+        debouncedDraw();
+        drawIfRemoved(mutationsList);
+    });
     observer.observe(containerRef.value, { childList: true });
 
     const resizeObserver = new ResizeObserver(() => draw());
@@ -62,4 +78,3 @@ watch(props.text, () => {
     draw();
 });
 </script>
-  
